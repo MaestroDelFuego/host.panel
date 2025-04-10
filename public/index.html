@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>host.panel</title>
+  <style>
+    :root {
+      --bg: #1e1e1e;
+      --panel: #2b2b2b;
+      --accent: #00ff99;
+      --accent-dark: #00cc7a;
+      --text: #f0f0f0;
+      --border: #333;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 2rem;
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--accent);
+      margin-bottom: 2rem;
+      font-size: 2rem;
+      text-shadow: 0 0 5px var(--accent-dark);
+    }
+
+    .panel-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background-color: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      transition: transform 0.2s;
+    }
+
+    .panel:hover {
+      transform: translateY(-4px);
+    }
+
+    .panel h2 {
+      color: var(--accent);
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+    }
+
+    .stats p,
+    .players ul,
+    .history ul {
+      margin: 0.5rem 0;
+    }
+
+    .players ul,
+    .history ul {
+      list-style: none;
+      padding: 0;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .players li,
+    .history li {
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .players li:hover {
+      background-color: var(--accent-dark);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background-color: #191919;
+      color: var(--text);
+    }
+
+    button {
+      margin-top: 0.5rem;
+      margin-right: 0.5rem;
+      padding: 0.5rem 1rem;
+      background-color: var(--accent);
+      border: none;
+      color: #121212;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: var(--accent-dark);
+    }
+
+    .panel.console pre {
+      background-color: #111;
+      padding: 1rem;
+      border-radius: 8px;
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 600px) {
+      input[type="text"] {
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+
+      button {
+        width: 100%;
+        margin: 0.3rem 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>host.panel</h1>
+
+  <div class="panel-container">
+    <div class="panel stats">
+      <h2>Server Stats</h2>
+      <p><strong>CPU Usage:</strong> <span id="cpu">--</span>%</p>
+      <p><strong>RAM Usage:</strong> <span id="ram">--</span>%</p>
+      <p><strong>Uptime:</strong> <span id="uptime">--</span></p>
+      <p><strong>TPS:</strong> <span id="tps">--</span></p>
+    </div>
+
+    <div class="panel players">
+      <h2>Online Players</h2>
+      <ul id="players"><li>Loading...</li></ul>
+      <input type="text" id="player-name" placeholder="Player name" />
+      <input type="text" id="whisper-message" placeholder="Send a message..." />
+      <button onclick="sendPlayerAction('kick')">Kick</button>
+      <button onclick="sendPlayerAction('ban')">Ban</button>
+      <button onclick="sendPlayerAction('message')">Message</button>
+    </div>
+
+    <div class="panel console">
+      <h2>Console</h2>
+      <pre id="output"></pre>
+      <input type="text" id="command" placeholder="Enter command..." />
+      <button onclick="sendCommand()">Send</button>
+    </div>
+
+    <div class="panel history">
+      <h2>Command History</h2>
+      <ul id="command-history"><li>Loading...</li></ul>
+    </div>
+
+    <div class="panel chat">
+      <h2>Chat</h2>
+      <input type="text" id="chat-message" placeholder="Send a message..." />
+      <button onclick="sendChatMessage()">Send</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    socket.on("server-stats", data => {
+      document.getElementById("cpu").textContent = data.cpu;
+      document.getElementById("ram").textContent = data.ram.toFixed(2);
+    });
+
+    socket.on("players", list => {
+      const ul = document.getElementById("players");
+      ul.innerHTML = list.length ? "" : "<li>No players online</li>";
+      list.forEach(name => {
+        const li = document.createElement("li");
+        li.textContent = name;
+        li.onclick = function() { setPlayerName(name) };  // Set player name when clicked
+        ul.appendChild(li);
+      });
+    });
+
+    socket.on("command-history", history => {
+      const ul = document.getElementById("command-history");
+      ul.innerHTML = "";
+      history.forEach(cmd => {
+        const li = document.createElement("li");
+        li.textContent = cmd;
+        ul.appendChild(li);
+      });
+    });
+
+    socket.on("server-info", info => {
+      document.getElementById("uptime").textContent = info.uptime;
+      document.getElementById("tps").textContent = info.tps;
+    });
+
+    socket.on("command-response", msg => {
+      const output = document.getElementById("output");
+      output.textContent += "> " + msg + "\n";
+      output.scrollTop = output.scrollHeight;
+    });
+
+    function sendCommand() {
+      const input = document.getElementById("command");
+      if (input.value.trim()) {
+        socket.emit("command", input.value.trim());
+        input.value = "";
+      }
+    }
+
+    function sendPlayerAction(action) {
+      const input = document.getElementById("player-name");
+      const chatMessage = document.getElementById("whisper-message").value.trim(); // Get message from the chat input
+      if (input.value.trim()) {
+        socket.emit("player-action", action, input.value.trim(), chatMessage);
+        document.getElementById("whisper-message").value = "";  // Clear the whisper message input field
+        input.value = "";
+      }
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById("chat-message");
+      if (input.value.trim()) {
+        socket.emit("chat-message", input.value.trim());
+        input.value = "";
+      }
+    }
+
+    // Function to set the player name when a player is clicked
+    function setPlayerName(name) {
+      document.getElementById('player-name').value = name;
+    }
+  </script>
+</body>
+</html>
