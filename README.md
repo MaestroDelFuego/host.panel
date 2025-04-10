@@ -18,19 +18,8 @@ The panel comes with a basic password system. The default credentials are:
 
 ## Warning
 **Do not expose this server to the web unless you know what you are doing!**  
-This panel is intended for use in trusted, secure environments. Exposing it to the public internet without proper security measures can lead to unauthorized access and potential compromise of your server. Make sure to secure your server with proper authentication and encryption (e.g., HTTPS) if you plan to expose it.
-
-## Installation
-
-1. Clone or download the repository.
-2. Set up a web server (like Nginx or Apache) to serve the `host.panel` files.
-3. Ensure your server is properly configured for security, especially if exposing it publicly.
-
-## Dependencies
-
-- A running server that supports Socket.IO.
-- A web server to serve the panel files (e.g., Nginx, Apache).
-- The Socket.IO server-side library.
+This panel is intended for use in trusted, secure environments. Exposing it to the public internet without proper security measures can lead to unauthorized access and potential compromise of your server. Make sure to secure your server with proper authentication and encryption (e.g., HTTPS) if you plan to expose it.  
+**THIS IS ENTIRELY DESIGNED TO BE USED IN A LOCAL ENVIRONMENT AND I TAKE 0 RESPONSIBILITY IF YOU STUPIDLY FORWARD PORT 3000 TO THE INTERNET.**
 
 ## Usage
 
